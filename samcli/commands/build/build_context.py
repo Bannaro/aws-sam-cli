@@ -4,6 +4,7 @@ Context object used by build command
 
 import os
 import shutil
+import json
 
 try:
     import pathlib
@@ -31,7 +32,8 @@ class BuildContext(object):
                  use_container=False,
                  parameter_overrides=None,
                  docker_network=None,
-                 skip_pull_image=False):
+                 skip_pull_image=False,
+                 env_vars_file=None):
 
         self._template_file = template_file
         self._base_dir = base_dir
@@ -42,6 +44,7 @@ class BuildContext(object):
         self._parameter_overrides = parameter_overrides
         self._docker_network = docker_network
         self._skip_pull_image = skip_pull_image
+        self._env_vars_file = env_vars_file
 
         self._function_provider = None
         self._template_dict = None
@@ -54,6 +57,7 @@ class BuildContext(object):
         except ValueError as ex:
             raise UserException(str(ex))
 
+        self._env_vars_value = self._get_env_vars_value(self._env_vars_file)
         self._function_provider = SamFunctionProvider(self._template_dict, self._parameter_overrides)
 
         if not self._base_dir:
@@ -88,6 +92,27 @@ class BuildContext(object):
             os.mkdir(build_dir, BuildContext._BUILD_DIR_PERMISSIONS)
 
         return build_dir
+
+    @staticmethod
+    def _get_env_vars_value(filename):
+        """
+        If the user provided a file containing values of environment variables, this method will read the file and
+        return its value
+        :param string filename: Path to file containing environment variable values
+        :return dict: Value of environment variables, if provided. None otherwise
+        :raises InvokeContextException: If the file was not found or not a valid JSON
+        """
+        if not filename:
+            return None
+
+        # Try to read the file and parse it as JSON
+        try:
+            with open(filename, 'r') as fp:
+                return json.load(fp)
+        except Exception as ex:
+            raise InvokeContextException("Could not read environment variables from file {}: {}".format(
+                                         filename,
+                                         str(ex)))
 
     @property
     def container_manager(self):
@@ -127,3 +152,7 @@ class BuildContext(object):
             return os.path.abspath(self._manifest_path)
 
         return None
+
+    @property
+    def env_vars(self):
+        return self._env_vars_value

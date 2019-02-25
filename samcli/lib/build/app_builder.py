@@ -50,7 +50,8 @@ class ApplicationBuilder(object):
                  base_dir,
                  manifest_path_override=None,
                  container_manager=None,
-                 parallel=False):
+                 parallel=False,
+                 env_vars={}):
         """
         Initialize the class
 
@@ -78,6 +79,7 @@ class ApplicationBuilder(object):
 
         self._container_manager = container_manager
         self._parallel = parallel
+        self._env_vars = env_vars
 
     def build(self):
         """
@@ -234,7 +236,8 @@ class ApplicationBuilder(object):
                                          log_level=log_level,
                                          optimizations=None,
                                          options=None,
-                                         executable_search_paths=config.executable_search_paths)
+                                         executable_search_paths=config.executable_search_paths,
+                                         env_vars=self._env_vars)
 
         try:
             try:

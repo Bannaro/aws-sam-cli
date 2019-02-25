@@ -74,6 +74,10 @@ $ sam build && sam package --s3-bucket <bucketname>
               default=None,
               type=click.Path(),
               help="Path to a custom dependency manifest (ex: package.json) to use instead of the default one")
+@click.option("--env_vars", "-e",
+              default=None,
+              type=click.Path(),
+              help="Path to JSON file containing environment variable value for Lambda Builder Container")
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
@@ -88,11 +92,12 @@ def cli(ctx,
         manifest,
         docker_network,
         skip_pull_image,
-        parameter_overrides):
+        parameter_overrides,
+        env_vars):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     do_cli(template, base_dir, build_dir, True, use_container, manifest, docker_network,
-           skip_pull_image, parameter_overrides)  # pragma: no cover
+           skip_pull_image, parameter_overrides, env_vars)  # pragma: no cover
 
 
 def do_cli(template,  # pylint: disable=too-many-locals
@@ -103,7 +108,8 @@ def do_cli(template,  # pylint: disable=too-many-locals
            manifest_path,
            docker_network,
            skip_pull_image,
-           parameter_overrides):
+           parameter_overrides,
+           env_vars):
     """
     Implementation of the ``cli`` method
     """
@@ -121,14 +127,15 @@ def do_cli(template,  # pylint: disable=too-many-locals
                       use_container=use_container,
                       parameter_overrides=parameter_overrides,
                       docker_network=docker_network,
-                      skip_pull_image=skip_pull_image) as ctx:
+                      skip_pull_image=skip_pull_image,
+                      env_vars_file=env_vars) as ctx:
 
         builder = ApplicationBuilder(ctx.function_provider,
                                      ctx.build_dir,
                                      ctx.base_dir,
                                      manifest_path_override=ctx.manifest_path_override,
-                                     container_manager=ctx.container_manager
-                                     )
+                                     container_manager=ctx.container_manager,
+                                     env_vars=ctx.env_vars)
         try:
             artifacts = builder.build()
             modified_template = builder.update_template(ctx.template_dict,
